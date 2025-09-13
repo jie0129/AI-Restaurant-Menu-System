@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="robotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1abc9c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a085;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="hatGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ecf0f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bdc3c7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGradient)" stroke="#7f8c8d" stroke-width="3"/>
+  
+  <!-- Chef Hat -->
+  <path d="M70 60 Q70 45 85 45 Q90 35 100 35 Q110 35 115 45 Q130 45 130 60 Q130 70 125 75 L75 75 Q70 70 70 60 Z" fill="url(#hatGradient)" stroke="#95a5a6" stroke-width="1"/>
+  
+  <!-- Hat Band -->
+  <rect x="75" y="70" width="50" height="8" fill="#34495e" rx="2"/>
+  
+  <!-- Circuit Pattern on Hat -->
+  <g stroke="#1abc9c" stroke-width="1" fill="none" opacity="0.7">
+    <path d="M80 50 L85 50 L85 55 L90 55"/>
+    <path d="M110 55 L115 55 L115 50 L120 50"/>
+    <circle cx="87" cy="52" r="1" fill="#1abc9c"/>
+    <circle cx="113" cy="52" r="1" fill="#1abc9c"/>
+  </g>
+  
+  <!-- Robot Head -->
+  <rect x="80" y="85" width="40" height="35" rx="8" fill="url(#robotGradient)" stroke="#148f77" stroke-width="2"/>
+  
+  <!-- Robot Eyes -->
+  <circle cx="90" cy="95" r="4" fill="#2c3e50"/>
+  <circle cx="110" cy="95" r="4" fill="#2c3e50"/>
+  <circle cx="90" cy="95" r="2" fill="#ecf0f1"/>
+  <circle cx="110" cy="95" r="2" fill="#ecf0f1"/>
+  
+  <!-- Robot Mouth (Smile) -->
+  <path d="M88 108 Q100 115 112 108" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- Robot Antennas -->
+  <line x1="85" y1="85" x2="85" y2="75" stroke="#1abc9c" stroke-width="2"/>
+  <line x1="115" y1="85" x2="115" y2="75" stroke="#1abc9c" stroke-width="2"/>
+  <circle cx="85" cy="75" r="2" fill="#e74c3c"/>
+  <circle cx="115" cy="75" r="2" fill="#e74c3c"/>
+  
+  <!-- Robot Body -->
+  <rect x="85" y="120" width="30" height="25" rx="4" fill="#27ae60" stroke="#229954" stroke-width="1"/>
+  
+  <!-- Utensils in Body -->
+  <g stroke="#2c3e50" stroke-width="1.5" fill="none">
+    <!-- Fork -->
+    <line x1="92" y1="128" x2="92" y2="138"/>
+    <line x1="90" y1="128" x2="90" y2="132"/>
+    <line x1="94" y1="128" x2="94" y2="132"/>
+    
+    <!-- Spoon -->
+    <path d="M108 128 Q108 130 106 132 Q108 134 108 138"/>
+  </g>
+  
+  <!-- Robot Arms -->
+  <rect x="70" y="125" width="15" height="8" rx="4" fill="#1abc9c"/>
+  <rect x="115" y="125" width="15" height="8" rx="4" fill="#1abc9c"/>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ecf0f1">MENU-BUDDY</text>
+  <text x="100" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#bdc3c7">MENU INTELLIGENCE</text>
+</svg>
