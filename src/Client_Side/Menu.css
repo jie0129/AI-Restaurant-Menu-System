@@ -1,0 +1,151 @@
+.menu-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  padding: 0 15px;
+}
+
+.menu-items-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.menu-item-row {
+  background-color: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  width: 31%;
+  text-align: center;
+}
+
+.menu-items-container::after {
+    content: "";
+    flex: auto;
+    width: 31%;
+  }
+
+.menu-image-container {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.unavailable-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  backdrop-filter: blur(2px);
+}
+
+.unavailable-content {
+  text-align: center;
+  color: #666;
+}
+
+.sad-face {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.unavailable-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: block;
+}
+
+.missing-ingredients {
+  margin-bottom: 0.5rem;
+}
+
+.menu-item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.menu-item-image:hover {
+  transform: scale(1.05);
+}
+
+.menu-item-image.grayscale {
+  filter: grayscale(100%) brightness(0.7);
+}
+
+.menu-item-row.unavailable {
+  opacity: 0.8;
+}
+
+.menu-item-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.menu-item-description {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}
+
+.price {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin: 8px 0;
+}
+
+.add-to-cart-btn {
+  border-radius: 20px;
+  padding: 5px 15px;
+  font-size: 0.9rem;
+}
+
+.popular-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #dc3545;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* Cart styles */
+.cart-item span:first-child {
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 2px solid #eee;
+  font-size: 1.1rem;
+}
+
+/* Fix currency in cart */
+.cart-item span:last-child,
+.cart-total strong:last-child {
+  font-family: monospace;
+}

@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-08-25T20:01:08.683233",
+  "best_model": "CatBoost",
+  "best_r2_score": 0.7169589619217763,
+  "model_performance": {
+    "CatBoost": {
+      "r2_score": 0.7169589619217763,
+      "rmse": 45.05220123750389,
+      "mae": 33.78743744810773
+    }
+  },
+  "new_items": {},
+  "top_features": [
+    {
+      "feature": "ma_30_day",
+      "importance": 0.29222633528915815
+    },
+    {
+      "feature": "ma_7_day",
+      "importance": 0.22144366595301482
+    },
+    {
+      "feature": "lag_7_day",
+      "importance": 0.1779287473418254
+    },
+    {
+      "feature": "lag_1_day",
+      "importance": 0.12801373824614976
+    },
+    {
+      "feature": "std_7_day",
+      "importance": 0.0461564761914523
+    },
+    {
+      "feature": "day_of_week_num",
+      "importance": 0.03768317060112983
+    },
+    {
+      "feature": "is_weekend",
+      "importance": 0.026562385896038862
+    },
+    {
+      "feature": "trend_7_day",
+      "importance": 0.026136762368866952
+    },
+    {
+      "feature": "day_cos",
+      "importance": 0.014873782020654223
+    },
+    {
+      "feature": "month_sin",
+      "importance": 0.012025692910007425
+    }
+  ],
+  "system_status": "ACCEPTABLE"
+}
