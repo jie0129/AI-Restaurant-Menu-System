@@ -693,12 +693,15 @@ def find_optimal_price(base_scenario, price_range_start=None, price_range_end=No
             logger.warning("⚠️ No observed market price provided, using category-based defaults")
             category = base_scenario.get('category', 'Main Course').lower()
             
-            if 'dessert' in category or 'snack' in category:
-                # For desserts, use lower market price estimates
-                observed_market_price = max(ingredient_cost * 2.0, 3.0)
-            elif 'beverage' in category or 'drink' in category:
-                # For beverages, use even lower estimates
+            if 'beverage' in category or 'drink' in category:
+                # For beverages, use lower market price estimates
                 observed_market_price = max(ingredient_cost * 1.8, 2.5)
+            elif 'dessert' in category or 'snack' in category:
+                # For desserts, use moderate market price estimates
+                observed_market_price = max(ingredient_cost * 2.0, 3.0)
+            elif 'side' in category or 'appetizer' in category or 'starter' in category:
+                # For side dishes, use moderate-low market price estimates
+                observed_market_price = max(ingredient_cost * 2.2, 4.0)
             else:
                 # For main courses, use higher estimates
                 observed_market_price = max(ingredient_cost * 2.5, 8.0)
