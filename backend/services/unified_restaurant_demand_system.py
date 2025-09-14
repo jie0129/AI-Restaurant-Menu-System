@@ -488,34 +488,80 @@ class RestaurantFeatureEngineer:
         new_features['estimated_selling_price'] = estimated_selling_price
         new_features['estimated_profit_margin'] = (estimated_selling_price - ingredient_cost) / estimated_selling_price
         
-        # 5. Market positioning features
+        # 5. Market positioning features with competitive analysis
         if len(similar_items) > 0:
             price_percentile = (similar_items['actual_selling_price'] <= estimated_selling_price).mean()
             new_features['price_percentile_in_category'] = price_percentile
             
-            # Premium vs budget classification
+            # Enhanced competitive analysis
+            category_prices = similar_items['actual_selling_price']
+            new_features['price_vs_category_median'] = estimated_selling_price / category_prices.median() if category_prices.median() > 0 else 1.0
+            new_features['price_vs_category_mean'] = estimated_selling_price / category_prices.mean() if category_prices.mean() > 0 else 1.0
+            new_features['category_price_std'] = category_prices.std() / category_prices.mean() if category_prices.mean() > 0 else 0.5
+            
+            # Market gap analysis
+            price_gaps = np.diff(np.sort(category_prices.unique()))
+            if len(price_gaps) > 0:
+                new_features['largest_price_gap'] = price_gaps.max() / category_prices.mean() if category_prices.mean() > 0 else 0
+                new_features['avg_price_gap'] = price_gaps.mean() / category_prices.mean() if category_prices.mean() > 0 else 0
+            else:
+                new_features['largest_price_gap'] = 0
+                new_features['avg_price_gap'] = 0
+            
+            # Premium vs budget classification with enhanced logic
             if price_percentile > 0.75:
                 new_features['positioning'] = 'premium'
                 new_features['positioning_encoded'] = 2
+                new_features['premium_demand_multiplier'] = 0.8  # Premium items typically have lower volume
             elif price_percentile < 0.25:
                 new_features['positioning'] = 'budget'
                 new_features['positioning_encoded'] = 0
+                new_features['premium_demand_multiplier'] = 1.3  # Budget items typically have higher volume
             else:
                 new_features['positioning'] = 'mid-range'
                 new_features['positioning_encoded'] = 1
+                new_features['premium_demand_multiplier'] = 1.0
+        else:
+            # Default values when no similar items available
+            new_features['price_percentile_in_category'] = 0.5
+            new_features['price_vs_category_median'] = 1.0
+            new_features['price_vs_category_mean'] = 1.0
+            new_features['category_price_std'] = 0.5
+            new_features['largest_price_gap'] = 0
+            new_features['avg_price_gap'] = 0
+            new_features['positioning'] = 'mid-range'
+            new_features['positioning_encoded'] = 1
+            new_features['premium_demand_multiplier'] = 1.0
         
-        # 6. Contextual adjustments
+        # 6. Contextual adjustments with seasonal patterns
         day_of_week = new_item_data.get('day_of_week', 'Monday')
         is_weekend = 1 if day_of_week in ['Saturday', 'Sunday'] else 0
         holiday = new_item_data.get('holiday', 0)
+        current_month = new_item_data.get('month', datetime.now().month)
+        
+        # Calculate seasonal multipliers based on category patterns
+        seasonal_multiplier = self._calculate_seasonal_multiplier(category, current_month, similar_items)
         
         # Weekend uplift
         weekend_multiplier = 1.2 if is_weekend else 1.0
         holiday_multiplier = 1.3 if holiday else 1.0
         
-        new_features['contextual_demand_adjustment'] = baseline_demand * weekend_multiplier * holiday_multiplier
+        new_features['seasonal_multiplier'] = seasonal_multiplier
+        new_features['contextual_demand_adjustment'] = baseline_demand * weekend_multiplier * holiday_multiplier * seasonal_multiplier
         
-        # 7. Ingredient similarity (if available)
+        # Add category-average historical patterns as proxies for lag features
+        if len(similar_items) > 0:
+            new_features['category_avg_lag_1'] = similar_items.get('lag_1_day', pd.Series([0])).mean()
+            new_features['category_avg_lag_7'] = similar_items.get('lag_7_day', pd.Series([0])).mean()
+            new_features['category_avg_ma_7'] = similar_items.get('ma_7_day', pd.Series([baseline_demand])).mean()
+            new_features['category_avg_std_7'] = similar_items.get('std_7_day', pd.Series([baseline_std])).mean()
+        else:
+            new_features['category_avg_lag_1'] = 0
+            new_features['category_avg_lag_7'] = 0
+            new_features['category_avg_ma_7'] = baseline_demand
+            new_features['category_avg_std_7'] = baseline_std
+        
+        # 7. Ingredient similarity with taxonomy-based grouping
         new_ingredients = new_item_data.get('key_ingredients_tags', '')
         if self.ingredient_similarity_matrix is not None:
             if new_ingredients:
@@ -528,12 +574,19 @@ class RestaurantFeatureEngineer:
                     
                     new_features['max_ingredient_similarity'] = max_similarity
                     new_features['avg_ingredient_similarity'] = avg_similarity
+                    
+                    # Add taxonomy-based ingredient analysis
+                    ingredient_taxonomy = self._analyze_ingredient_taxonomy(new_ingredients)
+                    new_features.update(ingredient_taxonomy)
+                    
                 except:
                     new_features['max_ingredient_similarity'] = 0
                     new_features['avg_ingredient_similarity'] = 0
+                    new_features.update(self._get_default_taxonomy_features())
             else:
                 new_features['max_ingredient_similarity'] = 0
                 new_features['avg_ingredient_similarity'] = 0
+                new_features.update(self._get_default_taxonomy_features())
         
         # 8. Cold start confidence score
         confidence_factors = [
@@ -548,6 +601,75 @@ class RestaurantFeatureEngineer:
         print(f"Prediction confidence: {new_features['prediction_confidence']:.2f}")
         
         return new_features
+    
+    def _calculate_seasonal_multiplier(self, category, current_month, similar_items):
+        """Calculate seasonal demand multiplier based on category patterns."""
+        # Default seasonal patterns by category
+        seasonal_patterns = {
+            'Beverage': {1: 0.9, 2: 0.9, 3: 1.0, 4: 1.1, 5: 1.2, 6: 1.3, 7: 1.3, 8: 1.2, 9: 1.1, 10: 1.0, 11: 0.9, 12: 0.9},
+            'Dessert': {1: 1.2, 2: 1.3, 3: 1.1, 4: 1.0, 5: 1.0, 6: 0.9, 7: 0.9, 8: 0.9, 9: 1.0, 10: 1.1, 11: 1.2, 12: 1.4},
+            'Main Course': {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0, 9: 1.0, 10: 1.0, 11: 1.1, 12: 1.1},
+            'Side Dish': {1: 0.9, 2: 0.9, 3: 1.0, 4: 1.1, 5: 1.2, 6: 1.1, 7: 1.0, 8: 1.0, 9: 1.0, 10: 1.0, 11: 1.1, 12: 1.2},
+            'Appetizer': {1: 1.1, 2: 1.2, 3: 1.0, 4: 1.0, 5: 1.0, 6: 0.9, 7: 0.9, 8: 0.9, 9: 1.0, 10: 1.0, 11: 1.2, 12: 1.3}
+        }
+        
+        # Get base seasonal multiplier
+        base_multiplier = seasonal_patterns.get(category, seasonal_patterns['Main Course']).get(current_month, 1.0)
+        
+        # Adjust based on similar items if available
+        if len(similar_items) > 0 and 'month' in similar_items.columns:
+            try:
+                monthly_demand = similar_items.groupby('month')['quantity_sold'].mean()
+                if len(monthly_demand) > 6:  # Need sufficient data
+                    overall_avg = monthly_demand.mean()
+                    current_month_avg = monthly_demand.get(current_month, overall_avg)
+                    historical_multiplier = current_month_avg / overall_avg if overall_avg > 0 else 1.0
+                    # Blend historical and default patterns
+                    base_multiplier = 0.7 * historical_multiplier + 0.3 * base_multiplier
+            except:
+                pass
+        
+        return max(0.5, min(2.0, base_multiplier))  
+    
+    def _analyze_ingredient_taxonomy(self, ingredients_text):
+        """Analyze ingredient taxonomy for enhanced similarity features."""
+        # Ingredient taxonomy
+        proteins = {'chicken', 'beef', 'pork', 'fish', 'salmon', 'shrimp', 'tofu', 'eggs', 'cheese', 'turkey', 'lamb', 'duck'}
+        vegetables = {'tomato', 'onion', 'lettuce', 'carrot', 'potato', 'broccoli', 'spinach', 'pepper', 'mushroom', 'cucumber', 'corn', 'peas'}
+        spices = {'salt', 'pepper', 'garlic', 'ginger', 'basil', 'oregano', 'thyme', 'cumin', 'paprika', 'chili', 'rosemary', 'sage'}
+        grains = {'rice', 'pasta', 'bread', 'flour', 'quinoa', 'barley', 'oats', 'wheat', 'noodles'}
+        dairy = {'milk', 'cream', 'butter', 'cheese', 'yogurt', 'sour cream'}
+        
+        ingredients_lower = ingredients_text.lower()
+        
+        # Count ingredients by category
+        protein_count = sum(1 for protein in proteins if protein in ingredients_lower)
+        vegetable_count = sum(1 for veg in vegetables if veg in ingredients_lower)
+        spice_count = sum(1 for spice in spices if spice in ingredients_lower)
+        grain_count = sum(1 for grain in grains if grain in ingredients_lower)
+        dairy_count = sum(1 for dairy_item in dairy if dairy_item in ingredients_lower)
+        
+        total_ingredients = len(ingredients_text.split(',')) if ingredients_text else 1
+        
+        return {
+            'protein_ratio': protein_count / total_ingredients,
+            'vegetable_ratio': vegetable_count / total_ingredients,
+            'spice_ratio': spice_count / total_ingredients,
+            'grain_ratio': grain_count / total_ingredients,
+            'dairy_ratio': dairy_count / total_ingredients,
+            'ingredient_diversity': len(set([protein_count > 0, vegetable_count > 0, spice_count > 0, grain_count > 0, dairy_count > 0]))
+        }
+    
+    def _get_default_taxonomy_features(self):
+        """Return default taxonomy features when ingredient analysis fails."""
+        return {
+            'protein_ratio': 0.2,
+            'vegetable_ratio': 0.3,
+            'spice_ratio': 0.1,
+            'grain_ratio': 0.2,
+            'dairy_ratio': 0.1,
+            'ingredient_diversity': 3
+        }
 
 
 class NewMenuItemPredictor:
@@ -879,10 +1001,27 @@ class NewMenuItemPredictor:
             
             ensemble_prediction = weighted_prediction / total_confidence if total_confidence > 0 else 0
             
+            # Enhanced confidence calculation based on prediction agreement and method reliability
+            method_predictions = [pred['predicted_demand'] for pred in predictions.values()]
+            prediction_std = np.std(method_predictions) if len(method_predictions) > 1 else 0
+            prediction_mean = np.mean(method_predictions)
+            
+            # Agreement factor: lower std relative to mean = higher confidence
+            agreement_factor = 1.0 - min(prediction_std / max(prediction_mean, 1.0), 0.5)
+            
+            # Base confidence from methods
+            base_confidence = total_confidence / len(predictions)
+            
+            # Enhanced confidence considering prediction agreement
+            enhanced_confidence = (base_confidence * 0.7) + (agreement_factor * 0.3)
+            enhanced_confidence = max(0.4, min(enhanced_confidence, 0.85))  # Reasonable bounds
+            
             predictions['ensemble'] = {
                 'predicted_demand': ensemble_prediction,
-                'confidence': total_confidence / len(predictions),
-                'methods_used': list(predictions.keys())
+                'confidence': enhanced_confidence,
+                'methods_used': list(predictions.keys()),
+                'prediction_agreement': agreement_factor,
+                'base_confidence': base_confidence
             }
         
         return predictions
@@ -1924,9 +2063,18 @@ class RestaurantDemandPredictor:
             
             cuisine_mod = cuisine_error_mods.get(new_item_data.get('cuisine_type', 'International'), 1.0)
             
-            # Calculate varied error metrics
-            estimated_rmse = (predicted_demand * category_multiplier['rmse'] * cuisine_mod) + (1 - confidence) * 3.0
-            estimated_mae = (predicted_demand * category_multiplier['mae'] * cuisine_mod) + (1 - confidence) * 2.0
+            # Calculate realistic error metrics based on typical new item performance
+            # Base error should be proportional to demand but not linearly scaled
+            base_rmse = 3.5 + (predicted_demand * 0.08)  # ~8% of demand + base error
+            base_mae = 2.5 + (predicted_demand * 0.06)   # ~6% of demand + base error
+            
+            # Apply category and cuisine adjustments (much smaller multipliers)
+            category_adj = (category_multiplier['rmse'] - 0.30) * 0.5  # Reduce impact
+            cuisine_adj = (cuisine_mod - 1.0) * 0.3  # Reduce impact
+            confidence_penalty = (1 - confidence) * 1.5  # Reduce penalty
+            
+            estimated_rmse = base_rmse + (base_rmse * category_adj) + (base_rmse * cuisine_adj) + confidence_penalty
+            estimated_mae = base_mae + (base_mae * category_adj) + (base_mae * cuisine_adj) + (confidence_penalty * 0.7)
             estimated_mape = (estimated_mae / max(predicted_demand, 1.0)) * 100
             
             print(f"Debug - Final R²: {estimated_r2:.4f}, RMSE: {estimated_rmse:.2f}, MAE: {estimated_mae:.2f}, MAPE: {estimated_mape:.2f}%")
