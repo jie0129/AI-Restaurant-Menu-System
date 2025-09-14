@@ -13,7 +13,7 @@ import io
 import base64
 from sqlalchemy import create_engine, text
 from config import Config
-import xgboost as xgb
+from catboost import CatBoostRegressor
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime
 
@@ -29,7 +29,7 @@ class TrainedDemandModel:
     """Trained demand model for predicting quantity_sold based on price and contextual factors."""
     
     def __init__(self):
-        """Initialize the trained demand model with XGBoost."""
+        """Initialize the trained demand model with CatBoost."""
         self.model = None
         self.feature_columns = [
             'price', 'typical_ingredient_cost', 'observed_market_price',
@@ -40,17 +40,33 @@ class TrainedDemandModel:
         self._initialize_model()
     
     def _initialize_model(self):
-        """Initialize and train the XGBoost model with realistic parameters."""
+        """Initialize and train the CatBoost model with realistic parameters."""
         try:
-            # Initialize XGBoost model with parameters from performance analysis
-            self.model = xgb.XGBRegressor(
-                n_estimators=100,
-                max_depth=6,
+            # Initialize CatBoost model with specified hyperparameters
+            param_grid = {
+                'iterations': [340],
+                'depth': [10],
+                'learning_rate': [0.1],
+                'l2_leaf_reg': [3],
+                'border_count': [64],
+                'bagging_temperature': [0]
+            }
+            
+            print(f"Parameter grid: {param_grid}")
+            print(f"Total combinations: {np.prod([len(v) for v in param_grid.values()])}")
+            
+            # Initialize CatBoost
+            self.model = CatBoostRegressor(
+                iterations=340,
+                depth=10,
                 learning_rate=0.1,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                random_state=42,
-                n_jobs=-1
+                l2_leaf_reg=3,
+                border_count=64,
+                bagging_temperature=0,
+                random_seed=42,
+                thread_count=-1,
+                verbose=False,
+                loss_function='RMSE'
             )
             
             # Initialize label encoders
@@ -215,10 +231,10 @@ def load_pricing_data():
     try:
         # Try to find the data file in common locations
         possible_paths = [
-            'data/xgboost_menu_items_20250824_210301.csv',
-            '../data/xgboost_menu_items_20250824_210301.csv',
-            '../../data/xgboost_menu_items_20250824_210301.csv',
-            'backend/data/xgboost_menu_items_20250824_210301.csv'
+            'data/catboost_menu_items_20250824_210301.csv',
+            '../data/catboost_menu_items_20250824_210301.csv',
+            '../../data/catboost_menu_items_20250824_210301.csv',
+            'backend/data/catboost_menu_items_20250824_210301.csv'
         ]
         
         data_path = None
@@ -711,17 +727,20 @@ def find_optimal_price(base_scenario, price_range_start=None, price_range_end=No
             price_range_start = ingredient_cost + 0.10  # Start just above cost
         
         if price_range_end is None:
-            # Set more reasonable price ranges based on food category and ingredient cost
+            # Set category-specific price ranges based on business requirements
             category = base_scenario.get('category', 'Main Course').lower()
             
-            if 'dessert' in category or 'snack' in category:
-                # For desserts and snacks, use lower multipliers
-                price_range_end = min(observed_market_price * 1.8, ingredient_cost * 4, 15.0)
-            elif 'beverage' in category or 'drink' in category:
-                # For beverages, use even lower multipliers
+            if 'beverage' in category or 'drink' in category:
+                # Beverages: Lower price ranges (1.5x market price, max 3x ingredient cost)
                 price_range_end = min(observed_market_price * 1.5, ingredient_cost * 3, 10.0)
+            elif 'dessert' in category or 'snack' in category:
+                # Desserts: Moderate price ranges (1.8x market price, max 4x ingredient cost)
+                price_range_end = min(observed_market_price * 1.8, ingredient_cost * 4, 15.0)
+            elif 'side' in category or 'appetizer' in category or 'starter' in category:
+                # Side Dishes: Moderate-low price ranges (1.6x market price, max 3.5x ingredient cost)
+                price_range_end = min(observed_market_price * 1.6, ingredient_cost * 3.5, 12.0)
             else:
-                # For main courses, use original logic but with lower cap
+                # Main Courses: Higher price ranges (2.0x market price, max 8x ingredient cost)
                 price_range_end = min(observed_market_price * 2.0, ingredient_cost * 8, 25.0)
             
             # Ensure minimum price range for very low-cost items
