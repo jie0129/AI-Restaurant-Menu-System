@@ -2,6 +2,8 @@
 
 A comprehensive restaurant management application built with React frontend and Flask backend, featuring AI-powered menu planning, inventory management, demand forecasting, and nutritional analysis.
 
+Dataset link: https://www.kaggle.com/datasets/jordanchan20/restaurant-menu-price
+
 ## Features
 
 ### 🍽️ Menu Management
