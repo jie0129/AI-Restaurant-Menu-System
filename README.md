@@ -4,6 +4,8 @@ A comprehensive restaurant management application built with React frontend and 
 
 Dataset link: https://www.kaggle.com/datasets/jordanchan20/restaurant-menu-price
 
+The Model_Evaluation.zip file contains the code for model training, fine-tuning, feature importance analysis, and error evaluation.
+
 ## Features
 
 ### 🍽️ Menu Management
